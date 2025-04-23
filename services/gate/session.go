@@ -21,10 +21,13 @@ func newSession() *session {
 type sessionManager struct {
 	sid2session map[uint64]*session
 	uid2session map[uint64]*session
+	uid         uint64
 }
 
 func (sm *sessionManager) addSession(gateSession appframe.GateSession) *session {
 	s := newSession()
+	sm.uid++
+	s.userid = sm.uid
 	s.GateSession = gateSession
 
 	sm.sid2session[s.ID()] = s

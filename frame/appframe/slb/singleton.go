@@ -7,14 +7,14 @@ import (
 
 // WithLoadBalanceSingleton 单节点服务负载均衡策略 (即无策略), 目的是统一抽象.
 // 参数 app 可以是 *Application, 也可以是 *GateApplication 对象.
-func WithLoadBalanceSingleton(app iGetAvailableServerIDs, svrType ServerType) LoadBalance {
+func WithLoadBalanceSingleton(app iGetAvailableServerIDs, svrType uint32) LoadBalance {
 	return &singleton{app: app, typ: svrType}
 }
 
 // 单节点服务负载均衡策略实现 (即无策略)
 type singleton struct {
 	app iGetAvailableServerIDs
-	typ ServerType
+	typ uint32
 	_id uint32
 }
 
@@ -34,7 +34,7 @@ func (s *singleton) GetServerID(ext uint64) (uint32, bool) {
 	return 0, false
 }
 
-func (s *singleton) Type() ServerType {
+func (s *singleton) Type() uint32 {
 	return s.typ
 }
 func (s *singleton) Available() bool {

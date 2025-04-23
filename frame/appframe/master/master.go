@@ -3,13 +3,14 @@ package master
 import (
 	"errors"
 	"fmt"
+	"github/beijian128/micius/frame/framework/worker"
 	"os"
 	"os/signal"
 
 	"github.com/sirupsen/logrus"
 
 	"github/beijian128/micius/frame/framework/netcluster"
-	"github/beijian128/micius/frame/ioservice"
+
 	"github/beijian128/micius/frame/log"
 )
 
@@ -20,7 +21,7 @@ var DisableMasterInitGlobalLogrus bool
 // Master 服务.
 type Master struct {
 	impl   *netcluster.Master
-	worker worker.Worker
+	worker worker.IWorker
 	name   string
 	id     uint32
 
@@ -38,14 +39,13 @@ func New(netConfigFile string, name string) (*Master, error) {
 		return nil, fmt.Errorf("can not find master config by name %s", name)
 	}
 
-	worker := worker.NewWorker(fmt.Sprintf("app_%s_main", name), 102400)
-	worker.Init()
+	w := worker.NewWorker("master", 1e5)
 
 	m := new(Master)
 	m.name = name
 	m.id = cfg.ServerID
-	m.worker = worker
-	m.impl = netcluster.NewMaster(netConfig, name, worker)
+	m.worker = w
+	m.impl = netcluster.NewMaster(netConfig, name, w)
 	if m.impl == nil {
 		return nil, errors.New("new master")
 	}

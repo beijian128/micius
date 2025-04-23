@@ -67,11 +67,11 @@ func (c *SlaveConf) IsGate() bool {
 // ClusterConf 集群配置
 type ClusterConf struct {
 	// config file name
-	FileName       string                 `json:"-"`
-	FileMd5        string                 `json:"-"`
-	Masters        map[string]*MasterConf `json:"masters"`
-	Slaves         map[string]*SlaveConf  `json:"slaves"`
-	allServerTypes map[uint32]int
+	FileName   string                 `json:"-"`
+	FileMd5    string                 `json:"-"`
+	Masters    map[string]*MasterConf `json:"masters"`
+	Slaves     map[string]*SlaveConf  `json:"slaves"`
+	alluint32s map[uint32]int
 }
 
 // LoadNewCfgFile ...
@@ -114,9 +114,9 @@ func (c *ClusterConf) IsSameSlaveCfg(cfg *SlaveConf) bool {
 	return false
 }
 
-// GetServiceSize 配置中预定义的指定serverType的服务节点数量
+// GetServiceSize 配置中预定义的指定uint32的服务节点数量
 func (c *ClusterConf) GetServiceSize(svrType uint32) int {
-	return c.allServerTypes[svrType]
+	return c.alluint32s[svrType]
 }
 
 func (c *ClusterConf) GetAllServers(svrType uint32) []uint32 {
@@ -169,10 +169,10 @@ func ParseClusterConfigFile(fileName string) (*ClusterConf, error) {
 		}
 	}
 
-	config.allServerTypes = map[uint32]int{}
+	config.alluint32s = map[uint32]int{}
 	for k, v := range config.Slaves {
 		v.ServerName = k
-		config.allServerTypes[v.ServerType]++
+		config.alluint32s[v.ServerType]++
 		if v.Log.Name == "" {
 			v.Log.Name = k
 		}
@@ -180,7 +180,7 @@ func ParseClusterConfigFile(fileName string) (*ClusterConf, error) {
 	for _, v := range config.Slaves {
 		if len(v.SubscribedTypes) == 0 {
 			// 订阅所有其他服务类型
-			for t := range config.allServerTypes {
+			for t := range config.alluint32s {
 				if t != v.ServerType {
 					v.SubscribedTypes = append(v.SubscribedTypes, t)
 				}
@@ -222,7 +222,7 @@ func CheckClusterConf(config *ClusterConf) error {
 		if masterSvrType == 0 {
 			masterSvrType = s.ServerType
 		} else if s.ServerType != masterSvrType {
-			return fmt.Errorf("cluster config master.%s diff servertype %d", sn, s.ServerType)
+			return fmt.Errorf("cluster config master.%s diff uint32 %d", sn, s.ServerType)
 		}
 
 		if _, ok := ids[s.ServerID]; ok {

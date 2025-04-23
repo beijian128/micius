@@ -2,6 +2,7 @@ package netframe
 
 import (
 	"fmt"
+	"github/beijian128/micius/frame/framework/worker"
 	"net"
 	"reflect"
 	"sync"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github/beijian128/micius/frame/ioservice"
 	"github/beijian128/micius/frame/network/connection"
 )
 
@@ -20,7 +20,7 @@ type implMetaNet struct {
 	// 配置
 	Config *AppConfig
 	// 事件
-	HandlerIO worker.Worker
+	HandlerIO worker.IWorker
 	// 消息管理
 	ConnectHandler OnNetConnect
 	CloseHandler   OnNetClose
@@ -75,7 +75,7 @@ func NewMetaNet() MetaNet {
 	return Net
 }
 
-func (net *implMetaNet) Init(config *AppConfig, io worker.Worker) {
+func (net *implMetaNet) Init(config *AppConfig, io worker.IWorker) {
 	if config == nil {
 		panic("MetaNet init Err: config==nil")
 	}
@@ -214,7 +214,7 @@ func (net *implMetaNet) Fini() {
 }
 
 func (net *implMetaNet) Post(f func()) {
-	net.HandlerIO.Push(f)
+	net.HandlerIO.Post(f)
 }
 
 func (net *implMetaNet) LocalAddr(ID uint32) net.Addr {
@@ -321,7 +321,7 @@ func (net *implMetaNet) onConnect(conn connection.Connection, ServerID uint32, S
 				"svrid":     ServerID,
 				"svrtype":   ServerType,
 				"starttime": ServerStartTime,
-			}).Warning("MetaNet OnConnect servertype diff")
+			}).Warning("MetaNet OnConnect ServerType diff")
 			net.NetMutex.Unlock()
 			return
 		}

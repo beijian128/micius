@@ -1,6 +1,6 @@
 package services
 
 const (
-	ServiceType_Gate uint32 = iota
-	ServiceType_Lobby
+	ServiceType_Gate  = 2
+	ServiceType_Lobby = 4
 )

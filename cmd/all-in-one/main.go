@@ -10,6 +10,7 @@ import (
 	"github/beijian128/micius/frame/util"
 	"github/beijian128/micius/services/gate"
 	"github/beijian128/micius/services/lobby"
+	"net/http"
 	"sync"
 )
 
@@ -121,6 +122,9 @@ func main() {
 		}
 		app.Run()
 	})
+
+	http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
+	http.ListenAndServe(":8080", nil)
 
 	wg.Wait()
 }

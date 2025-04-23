@@ -73,6 +73,7 @@ func (Code) EnumDescriptor() ([]byte, []int) {
 	return file_cmsg_client_msg_proto_rawDescGZIP(), []int{0}
 }
 
+// 登录服务器并进入聊天室
 type CReqLogin struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -167,6 +168,7 @@ func (x *SRespLogin) GetCode() Code {
 	return Code_OK
 }
 
+// 发送聊天消息
 type CReqSendChatMessage struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -261,6 +263,158 @@ func (x *SRespSendChatMessage) GetCode() Code {
 	return Code_OK
 }
 
+// 有其他玩家进入聊天室
+type SNotifyUserEnter struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Account string `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+}
+
+func (x *SNotifyUserEnter) Reset() {
+	*x = SNotifyUserEnter{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cmsg_client_msg_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SNotifyUserEnter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SNotifyUserEnter) ProtoMessage() {}
+
+func (x *SNotifyUserEnter) ProtoReflect() protoreflect.Message {
+	mi := &file_cmsg_client_msg_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SNotifyUserEnter.ProtoReflect.Descriptor instead.
+func (*SNotifyUserEnter) Descriptor() ([]byte, []int) {
+	return file_cmsg_client_msg_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SNotifyUserEnter) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
+// 有其他玩家离开聊天室
+type SNotifyUserLeave struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Account string `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+}
+
+func (x *SNotifyUserLeave) Reset() {
+	*x = SNotifyUserLeave{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cmsg_client_msg_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SNotifyUserLeave) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SNotifyUserLeave) ProtoMessage() {}
+
+func (x *SNotifyUserLeave) ProtoReflect() protoreflect.Message {
+	mi := &file_cmsg_client_msg_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SNotifyUserLeave.ProtoReflect.Descriptor instead.
+func (*SNotifyUserLeave) Descriptor() ([]byte, []int) {
+	return file_cmsg_client_msg_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SNotifyUserLeave) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
+// 同步其他玩家的聊天消息
+type SNotifyUserChatMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Account string `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	Text    string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+}
+
+func (x *SNotifyUserChatMessage) Reset() {
+	*x = SNotifyUserChatMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cmsg_client_msg_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SNotifyUserChatMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SNotifyUserChatMessage) ProtoMessage() {}
+
+func (x *SNotifyUserChatMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_cmsg_client_msg_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SNotifyUserChatMessage.ProtoReflect.Descriptor instead.
+func (*SNotifyUserChatMessage) Descriptor() ([]byte, []int) {
+	return file_cmsg_client_msg_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SNotifyUserChatMessage) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
+func (x *SNotifyUserChatMessage) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
 var File_cmsg_client_msg_proto protoreflect.FileDescriptor
 
 var file_cmsg_client_msg_proto_rawDesc = []byte{
@@ -277,9 +431,19 @@ var file_cmsg_client_msg_proto_rawDesc = []byte{
 	0x14, 0x53, 0x52, 0x65, 0x73, 0x70, 0x53, 0x65, 0x6e, 0x64, 0x43, 0x68, 0x61, 0x74, 0x4d, 0x65,
 	0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x1e, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x0e, 0x32, 0x0a, 0x2e, 0x63, 0x6d, 0x73, 0x67, 0x2e, 0x43, 0x6f, 0x64, 0x65, 0x52,
-	0x04, 0x63, 0x6f, 0x64, 0x65, 0x2a, 0x1b, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x06, 0x0a,
-	0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e,
-	0x10, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x04, 0x63, 0x6f, 0x64, 0x65, 0x22, 0x2c, 0x0a, 0x10, 0x53, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79,
+	0x55, 0x73, 0x65, 0x72, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x63, 0x63,
+	0x6f, 0x75, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x63, 0x63, 0x6f,
+	0x75, 0x6e, 0x74, 0x22, 0x2c, 0x0a, 0x10, 0x53, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x55, 0x73,
+	0x65, 0x72, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x63, 0x63, 0x6f, 0x75,
+	0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e,
+	0x74, 0x22, 0x46, 0x0a, 0x16, 0x53, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x55, 0x73, 0x65, 0x72,
+	0x43, 0x68, 0x61, 0x74, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x61,
+	0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x63,
+	0x63, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x65, 0x78, 0x74, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x65, 0x78, 0x74, 0x2a, 0x1b, 0x0a, 0x04, 0x43, 0x6f, 0x64,
+	0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x6e, 0x6b,
+	0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -295,13 +459,16 @@ func file_cmsg_client_msg_proto_rawDescGZIP() []byte {
 }
 
 var file_cmsg_client_msg_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cmsg_client_msg_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_cmsg_client_msg_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_cmsg_client_msg_proto_goTypes = []interface{}{
-	(Code)(0),                    // 0: cmsg.Code
-	(*CReqLogin)(nil),            // 1: cmsg.CReqLogin
-	(*SRespLogin)(nil),           // 2: cmsg.SRespLogin
-	(*CReqSendChatMessage)(nil),  // 3: cmsg.CReqSendChatMessage
-	(*SRespSendChatMessage)(nil), // 4: cmsg.SRespSendChatMessage
+	(Code)(0),                      // 0: cmsg.Code
+	(*CReqLogin)(nil),              // 1: cmsg.CReqLogin
+	(*SRespLogin)(nil),             // 2: cmsg.SRespLogin
+	(*CReqSendChatMessage)(nil),    // 3: cmsg.CReqSendChatMessage
+	(*SRespSendChatMessage)(nil),   // 4: cmsg.SRespSendChatMessage
+	(*SNotifyUserEnter)(nil),       // 5: cmsg.SNotifyUserEnter
+	(*SNotifyUserLeave)(nil),       // 6: cmsg.SNotifyUserLeave
+	(*SNotifyUserChatMessage)(nil), // 7: cmsg.SNotifyUserChatMessage
 }
 var file_cmsg_client_msg_proto_depIdxs = []int32{
 	0, // 0: cmsg.SRespLogin.code:type_name -> cmsg.Code
@@ -367,6 +534,42 @@ func file_cmsg_client_msg_proto_init() {
 				return nil
 			}
 		}
+		file_cmsg_client_msg_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SNotifyUserEnter); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cmsg_client_msg_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SNotifyUserLeave); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cmsg_client_msg_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SNotifyUserChatMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -374,7 +577,7 @@ func file_cmsg_client_msg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_cmsg_client_msg_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -37,7 +37,7 @@ func InitGateSvr(app *appframe.GateApplication, cfgFile string) error {
 }
 
 func Close() {
-	SessionMgrInstance.close()
+ 
 }
 
 func onLobbyServerDisconnect(svrID uint32, event netcluster.SvrEvent) {

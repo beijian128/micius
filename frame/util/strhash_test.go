@@ -47,9 +47,9 @@ func TestStringHashProtoName(t *testing.T) {
 			return
 		}
 		msgID := StringHash(string(fullName))
-		if msgID == 183035257 {
-			t.Log(fullName, msgID)
-		}
+		//if msgID == 183035257 {
+		t.Log(fullName, msgID)
+		//}
 
 	}
 

@@ -5,11 +5,13 @@ import (
 	"github/beijian128/micius/frame/util"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type IWorker interface {
 	// Post rpc 方式
 	Post(f func())
+	AfterPost(duration time.Duration, f func())
 
 	// Run 开启goroutine
 	Run()
@@ -24,11 +26,19 @@ type Worker struct {
 	finiWg sync.WaitGroup
 	fs     chan func()
 	len    atomic.Int32
+	name   string
 }
 
-func NewWorker(maxWorkerLen int) *Worker {
+func (w *Worker) AfterPost(duration time.Duration, f func()) {
+	time.AfterFunc(duration, func() {
+		w.Post(f)
+	})
+}
+
+func NewWorker(name string, maxWorkerLen int) IWorker {
 	w := &Worker{
-		fs: make(chan func(), maxWorkerLen),
+		fs:   make(chan func(), maxWorkerLen),
+		name: name,
 	}
 	return w
 }
@@ -40,6 +50,7 @@ func (w *Worker) Post(f func()) {
 
 func (w *Worker) Run() {
 	w.finiWg.Add(1)
+	w.closed.Store(true)
 
 	go func() {
 		defer util.Recover()
@@ -47,7 +58,7 @@ func (w *Worker) Run() {
 			// 由于defer的调用比较耗内存，不能对外部的每个函数进行defer，所以采用了以下方式
 			// 挂了重启，关了退出
 			if w.closed.Load() {
-				logrus.Error("IO catch err")
+				logrus.Error("worker restart", w.name)
 				w.Run()
 			}
 			w.finiWg.Done()

@@ -24,6 +24,7 @@ type user struct {
 	loginState     LoginState
 	connect        bool
 	disconnectTime int64
+	account        string
 
 	mgr *userManager
 }
@@ -33,9 +34,9 @@ func (p *user) isConnected() bool {
 }
 
 func (p *user) SendMsg(msg proto.Message) {
-	if !p.isConnected() {
-		return
-	}
+	//if !p.isConnected() {
+	//	return
+	//}
 	AppInstance.GetSession(p.session).SendMsg(msg)
 }
 

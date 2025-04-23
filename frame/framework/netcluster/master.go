@@ -1,21 +1,20 @@
 package netcluster
 
 import (
+	"github/beijian128/micius/frame/framework/netframe"
+	"github/beijian128/micius/frame/framework/worker"
 	"net"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"strings"
-
-	"github/beijian128/micius/frame/framework/netframe"
-	"github/beijian128/micius/frame/ioservice"
 )
 
 var logger = logrus.WithField("where", "netcluster/master")
 
 type Master struct {
-	NetIO         worker.Worker
+	NetIO         worker.IWorker
 	ClusterConfig *ClusterConf
 	MasterConfig  *MasterConf
 
@@ -67,7 +66,7 @@ type routerItem struct {
 }
 
 // NewMaster ...
-func NewMaster(config *ClusterConf, key string, io worker.Worker) *Master {
+func NewMaster(config *ClusterConf, key string, io worker.IWorker) *Master {
 	mcfg, bhave := config.Masters[key]
 	if !bhave {
 		logger.WithField("server", key).Panic("NewMaster can not find server")
@@ -136,7 +135,6 @@ func (m *Master) Init() {
 	m.net.ListenMessage((*Slave_RepVerifyConfigFile)(nil), m.onSlaveRepVerifyConfigFile)
 	m.net.ListenMessage((*Slave_UptConfigMd5)(nil), m.onSlaveUptConfigMd5)
 	m.net.ListenMessage((*SM_ReqPrepareCloseMyself)(nil), m.onSlavePrepareClose)
-	m.net.ListenMessage((*S2M_ReqUnloadMyself)(nil), m.onSlaveReqUnloadMyself)
 }
 
 // Run ...
@@ -177,7 +175,7 @@ func (m *Master) RemoteAddr(ID uint32) net.Addr {
 }
 
 // SendMsg ...
-func (m *Master) SendMsg(ID uint32, msg any, extend *netframe.Server_Extend) error {
+func (m *Master) SendMsg(ID uint32, msg interface{}, extend *netframe.Server_Extend) error {
 	return m.net.SendMsg(ID, msg, extend)
 }
 
@@ -208,7 +206,6 @@ func (m *Master) OnClose(ID uint32, serverType uint32) {
 
 	if server, ok := m.id2servers[ID]; ok {
 		server.isConnected = false
-		server.disableNewConsistentFlow = false
 
 		// 通知关注我的服务
 		m.publish2MySubscribers(ID, serverType)
@@ -294,7 +291,7 @@ func (m *Master) isSameCfgAllCluster() bool {
 }
 
 // 检查配置并执行连接
-func (m *Master) onSlaveReqVerifyConfig(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlaveReqVerifyConfig(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	req := msg.(*Slave_ReqVerifyConfigFile)
 	logger := logger.WithFields(logrus.Fields{
 		"svrid":     ID,
@@ -361,26 +358,54 @@ CheckAll:
 			m.Close(ID)
 			logger.WithField("svrid", ID).Error("OnConnect Master slave配置校验超时")
 		})
+		return
 	}
 
 	// 执行连接
 	m.doNewSlaveConnect(ID, serverType, req.FileMd5)
 }
 
-func (m *Master) onSlaveRepVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlaveRepVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	req := msg.(*Slave_RepVerifyConfigFile)
 
 	if re, ok := m.cfgCheckMap[req.ReqServerId]; ok {
 		if re.timestamp == req.Time {
 			re.result[ID] = req.IsSucc
-			if strings.Compare(m.ClusterConfig.FileMd5, re.cfgMd5) == 0 {
-				m.doNewSlaveConnect(ID, serverType, re.cfgMd5)
+
+			// 是否所有slave(此前已注册的服务)都载入新配置成功
+			isCfgAllOk := true
+			for _, sitem := range m.id2servers {
+
+				if !(sitem.isConnected || sitem.isWorking) {
+					// 这里continue的原因
+					// 1.还未注册的服务（即将注册的新服务）的配置校验在onSlaveReqVerifyConfig 里已经完成，没必要再做一次。
+					// 2.如果不跳过，会导致新服务的注册超时
+					continue
+				}
+
+				if isCfgOk, ok := re.result[sitem.config.ServerID]; ok {
+					if !isCfgOk {
+						isCfgAllOk = false
+						break
+					}
+				} else {
+					isCfgAllOk = false
+					break
+				}
+			}
+
+			if isCfgAllOk {
+				// master配置没变
+				if strings.Compare(m.ClusterConfig.FileMd5, re.cfgMd5) == 0 {
+					m.doNewSlaveConnect(ID, serverType, re.cfgMd5)
+				}
+				return
 			}
 		}
 	}
 }
 
-func (m *Master) onSlaveUptConfigMd5(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlaveUptConfigMd5(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	req := msg.(*Slave_UptConfigMd5)
 
 	if sitem, ok := m.id2servers[ID]; ok {
@@ -427,7 +452,6 @@ func (m *Master) OnWorkerExit(svrid uint32, serverType uint32) {
 
 	if sitem, ok := m.id2servers[svrid]; ok {
 		sitem.isWorking = false
-		sitem.disableNewConsistentFlow = false
 		m.publish2MySubscribers(sitem.config.ServerID, sitem.config.ServerType)
 	}
 }
@@ -597,7 +621,7 @@ func (m *Master) publishLoadLevel(serverID uint32) {
 	}
 }
 
-func (m *Master) onSlaveReportLoadLv(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlaveReportLoadLv(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	req := msg.(*Slave_ReportLoadLevel)
 
 	if req.IsFix {
@@ -621,7 +645,7 @@ func (m *Master) printRMsgStat() {
 			if !m.PrintLoadLevelStatus {
 				continue
 			}
-			m.NetIO.Push(func() {
+			m.NetIO.Post(func() {
 				for aid, sb := range m.routerA2B {
 					for bid, item := range sb {
 						logger.WithFields(logrus.Fields{
@@ -682,7 +706,7 @@ func (m *Master) addNewSalveCfg(newID uint32) bool {
 	return false
 }
 
-func (m *Master) onSlavePrepareClose(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlavePrepareClose(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	logger.WithFields(logrus.Fields{
 		"svrid":   ID,
 		"svrtype": serverType,
@@ -694,14 +718,14 @@ func (m *Master) onSlavePrepareClose(ID uint32, serverType uint32, _ uint32, _ [
 	}
 }
 
-func (m *Master) onSlaveReqUnloadMyself(ID uint32, serverType uint32, _ uint32, bytes []byte, msg any, extend netframe.Server_Extend) {
+func (m *Master) onSlaveDisableNewConsistentFLow(ID uint32, serverType uint32, _ uint32, bytes []byte, msg interface{}, extend netframe.Server_Extend) {
 	logger.WithFields(logrus.Fields{
 		"svrid":   ID,
 		"svrtype": serverType,
 	}).Info("slave disable new consistent flow")
 
 	if sitem, ok := m.id2servers[ID]; ok {
-		sitem.disableNewConsistentFlow = true // 下线
+		sitem.disableNewConsistentFlow = true
 		m.publish2MySubscribers(sitem.config.ServerID, sitem.config.ServerType)
 	}
 }

@@ -11,7 +11,7 @@ func NewWorkerGroup(count int32) *WorkerGroup {
 		len:     count,
 	}
 	for i := int32(0); i < count; i++ {
-		workers.workers[i] = NewWorker(1e5)
+		workers.workers[i] = NewWorker("group", 1e5)
 	}
 	return workers
 }

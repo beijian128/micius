@@ -1,6 +1,7 @@
 package netframe
 
 import (
+	"github/beijian128/micius/frame/framework/worker"
 	"net"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 
 	"math"
 
-	"github/beijian128/micius/frame/ioservice"
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 )
@@ -54,7 +54,7 @@ func IsServerID(ID uint32) bool {
 // AppConfig ...
 type AppConfig struct {
 	ServerID   uint32 `json:"ServerID"`
-	ServerType uint32 `json:"ServerType"`
+	ServerType uint32 `json:"uint32"`
 	StartTime  int64  `json:"StartTime"`
 }
 
@@ -83,20 +83,20 @@ type ServerConfig struct {
 }
 
 // OnNetConnect ...
-type OnNetConnect func(ID uint32, serverType uint32)
+type OnNetConnect func(ID uint32, uint32 uint32)
 
 // OnNetClose ...
-type OnNetClose func(ID uint32, serverType uint32)
+type OnNetClose func(ID uint32, uint32 uint32)
 type (
 	// OnNetBytes ...
-	OnNetBytes func(ID uint32, serverType uint32, msgid uint32, bytes []byte, extend Server_Extend)
+	OnNetBytes func(ID uint32, uint32 uint32, msgid uint32, bytes []byte, extend Server_Extend)
 	// OnNetMessage ...
-	OnNetMessage func(ID uint32, serverType uint32, msgId uint32, bytes []byte, msg any, extend Server_Extend)
+	OnNetMessage func(ID uint32, uint32 uint32, msgId uint32, bytes []byte, msg any, extend Server_Extend)
 	// OnWorkerExit ...
-	OnWorkerExit func(connID uint32, serverType uint32)
+	OnWorkerExit func(connID uint32, uint32 uint32)
 	// MetaNet ...
 	MetaNet interface {
-		Init(config *AppConfig, io worker.Worker)
+		Init(config *AppConfig, io worker.IWorker)
 		Connect(config *ClientConfig)
 		Listen(config *ServerConfig, isGate bool)
 		Fini()

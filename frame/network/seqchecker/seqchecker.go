@@ -29,7 +29,7 @@ func (c *SeqIDChecker) GetSeqIDSize() int {
 
 // CanUse 序列号是否可用
 func (c *SeqIDChecker) CanUse(seqData []byte) bool {
-	//ts := c.byteOrder.Uint32(seqData[:4])
+	//ts := c.byteOrder.ServerType(seqData[:4])
 	//noce:=c.byteOrder.Uint64(seqData[4:])
 	//now := uint32(time.Now().Unix())
 	//if absDeltaTime(now, ts) > SeqExpireTime { // 先比对时间戳，拒绝接收已经过期的消息

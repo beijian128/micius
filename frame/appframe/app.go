@@ -30,8 +30,8 @@ var DisableApplicationInitGlobalLogrus bool
 type Application struct {
 	name             string
 	id               uint32
-	ioWorker         *worker.Worker
-	logicWorker      *worker.Worker
+	ioWorker         worker.IWorker
+	logicWorker      worker.IWorker
 	slave            *netcluster.Slave
 	exitCh           chan int
 	services         map[uint32]Service
@@ -72,8 +72,8 @@ func (a *Application) init(netconfig *netcluster.ClusterConf, name string) error
 	a.id = cfg.ServerID
 	a.services = make(map[uint32]Service)
 
-	a.ioWorker = worker.NewWorker(1e5)
-	a.logicWorker = worker.NewWorker(1e5)
+	a.ioWorker = worker.NewWorker("io", 1e5)
+	a.logicWorker = worker.NewWorker("logic", 1e5)
 	a.slave = netcluster.NewSlave(netconfig, name, a.ioWorker)
 	if a.slave == nil {
 		return errors.New("new slave")
@@ -161,6 +161,7 @@ func (a *Application) Run() {
 
 	a.ioWorker.Run()
 	a.slave.Run()
+	a.logicWorker.Run()
 
 	// 在 app 的 ioWorker 中调用这些启动时需要触发的回调函数.
 	onruns := a.onRun
@@ -199,11 +200,6 @@ func (a *Application) Run() {
 	//等待close执行完毕
 	wg.Wait()
 
-	// 等待所有消息处理完毕
-	if a.logicWorker != nil {
-		a.logicWorker.Fini()
-	}
-
 	a.reqc.WaitAllDone()
 
 	// 最后的收尾工作, 倒序调用.
@@ -216,6 +212,7 @@ func (a *Application) Run() {
 
 	a.slave.Fini()
 	a.ioWorker.Fini()
+	a.logicWorker.Fini()
 
 	if a.closeLogger != nil {
 		a.closeLogger()
@@ -297,6 +294,7 @@ func (a *Application) ListenSessionMsg(msg proto.Message, handler SessionMsgHand
 			logrus.Error("Msg from server is not a proto.Message")
 			return
 		}
+		logrus.Debugf("收到客户端消息: %v", msg)
 		sid := SessionID{
 			SvrID: extend.ServerId,
 			ID:    extend.SessionId,

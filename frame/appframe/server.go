@@ -1,7 +1,6 @@
 package appframe
 
 import (
-	appframeslb "github/beijian128/micius/frame/appframe/slb"
 	"time"
 
 	"github.com/golang/protobuf/proto"

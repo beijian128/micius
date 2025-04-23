@@ -5,9 +5,6 @@ syntax = "proto3";
 
 package cmsg;
 
-//import "github/beijian128/micius/proto/gameconf/game_type.proto";
-//import "github/beijian128/micius/proto/def/def.proto";
-
 enum Code{
   OK = 0;
   Unknown = 1;

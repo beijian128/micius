@@ -2,19 +2,17 @@ package netcluster
 
 import (
 	"fmt"
+	"github/beijian128/micius/frame/framework/netframe"
+	"github/beijian128/micius/frame/framework/worker"
+	"github/beijian128/micius/frame/network/msgprocessor"
 	"math/rand"
 	"net"
 	"time"
-
-	"github/beijian128/micius/frame/network/msgprocessor"
 
 	"github.com/sirupsen/logrus"
 
 	"strings"
 	"sync"
-
-	"github/beijian128/micius/frame/framework/netframe"
-	"github/beijian128/micius/frame/ioservice"
 )
 
 const (
@@ -57,7 +55,10 @@ type RouterStatus struct {
 	isConnected bool
 	isWorking   bool
 
-	isUnloaded bool // 用于服务热更新。标记服务准备下线，不再导入新的流量（如果是game服，继续进行已有对局，但不再新开对局。如果是entity服，继续处理已绑定的user消息，不再绑定新user）
+	// 基于哈希算法实现负载均衡的服务热更新时，旧服务标记 disableNewHashFlow =true ,
+	// 代表旧服务不再接受来自新用户的请求，但已有的旧用户的请求仍然会正常处理。
+	// 新用户的请求会被导向新服务
+	disableNewHashFlow bool
 }
 
 // SubServerInfo 关注服务信息
@@ -83,7 +84,7 @@ type SubServerGroup struct {
 
 // Slave ...
 type Slave struct {
-	NetIO                worker.Worker
+	NetIO                worker.IWorker
 	ClusterConfig        *ClusterConf
 	SlaveConfig          *SlaveConf
 	DebugPrintMessage    bool
@@ -115,7 +116,7 @@ type Slave struct {
 }
 
 // NewSlave ...
-func NewSlave(config *ClusterConf, key string, io worker.Worker) *Slave {
+func NewSlave(config *ClusterConf, key string, io worker.IWorker) *Slave {
 	keyConfig, ok := config.Slaves[key]
 	if !ok {
 		logger.WithField("server", key).Panic("NewSlave can not find server")
@@ -208,7 +209,6 @@ func (s *Slave) Init() {
 	s.net.ListenMessage((*Slave_ReqShiftFixMaster)(nil), s.onShiftMasterReq)
 	s.net.ListenMessage((*Slave_RepShiftFixMaster)(nil), s.onShiftMasterRep)
 	s.net.ListenMessage((*SS_CmdPrepareCloseServer)(nil), s.OnSlaveReqPreCloseServer)
-	s.net.ListenMessage((*S2S_CmdUnloadServer)(nil), s.OnSlaveReqUnloadServer)
 	s.net.ListenBytes(s.OnBytes)
 }
 
@@ -224,7 +224,7 @@ func (s *Slave) Run() {
 	}
 
 	// 如果slave有监听外部请求的需要，就开启监听。 （一般为 gate服务，监听来自客户端的连接请求）
-	if len(s.SlaveConfig.ListenAddr) > 0 && !s.SlaveConfig.UseShortNetwork {
+	if len(s.SlaveConfig.ListenAddr) > 0 {
 		sc := &netframe.ServerConfig{
 			Name:                 s.SlaveConfig.ServerName,
 			UseWebsocket:         s.SlaveConfig.UseWebsocket,
@@ -264,7 +264,7 @@ func (s *Slave) RemoteAddr(ID uint32) net.Addr {
 }
 
 // SendClientMsg ...
-func (s *Slave) SendClientMsg(ID uint32, msg any, extend netframe.Server_Extend) error {
+func (s *Slave) SendClientMsg(ID uint32, msg interface{}, extend netframe.Server_Extend) error {
 
 	msgid, data, err1 := msgprocessor.OnMarshal(msg)
 	if err1 != nil {
@@ -280,7 +280,7 @@ func (s *Slave) SendClientBytes(ID uint32, msgid uint32, bytes []byte, extend ne
 }
 
 // SendServerMsg serverID:目标服务器
-func (s *Slave) SendServerMsg(msg any, extend netframe.Server_Extend) error {
+func (s *Slave) SendServerMsg(msg interface{}, extend netframe.Server_Extend) error {
 
 	msgid, data, err1 := msgprocessor.OnMarshal(msg)
 	if err1 != nil {
@@ -326,7 +326,6 @@ func (s *Slave) sendByteWithInterceptor(ID uint32, msgid uint32, bytes []byte, e
 
 // Close ...
 func (s *Slave) Close(ID uint32) {
-	logrus.Infof("slave close ID=%d", ID)
 	s.net.Close(ID)
 }
 
@@ -342,7 +341,7 @@ func (s *Slave) GetServerAllAvailable(serverType uint32) []uint32 {
 		var servers []uint32
 		for _, sitem := range group.id2SubServers {
 			if rs, ok := sitem.mid2Status[sitem.fMasterID]; ok {
-				if rs.isConnected && rs.isWorking && !rs.isUnloaded {
+				if rs.isConnected && rs.isWorking && !rs.disableNewHashFlow {
 					servers = append(servers, sitem.config.ServerID)
 				}
 			}
@@ -359,7 +358,7 @@ func (s *Slave) IsServerAvailable(svrid uint32) bool {
 
 	if sitem, ok := s.id2Subscribers[svrid]; ok {
 		if rs, ok := sitem.mid2Status[sitem.fMasterID]; ok {
-			if rs.isConnected && rs.isWorking && !rs.isUnloaded {
+			if rs.isConnected && rs.isWorking && !rs.disableNewHashFlow {
 				return true
 			}
 		}
@@ -403,12 +402,12 @@ func (s *Slave) RegisterInterceptor(f func(source MsgSrc, connId uint32, msgId u
 	s.interceptFunc = f
 }
 
-func (s *Slave) ListenClientMessage(msg any, message netframe.OnNetMessage) {
+func (s *Slave) ListenClientMessage(msg interface{}, message netframe.OnNetMessage) {
 	if message == nil {
 		return
 	}
 
-	s.net.ListenMessage(msg, func(cID uint32, cServerType uint32, msgId uint32, msgData []byte, cmsg any, extend netframe.Server_Extend) {
+	s.net.ListenMessage(msg, func(cID uint32, cServerType uint32, msgId uint32, msgData []byte, cmsg interface{}, extend netframe.Server_Extend) {
 		if !netframe.IsServerID(cID) {
 			if s.DebugPrintMessage {
 				logger.WithFields(logrus.Fields{
@@ -448,12 +447,12 @@ func (s *Slave) ListenServerBytes(onBytes netframe.OnNetBytes) {
 	}
 }
 
-func (s *Slave) ListenServerMessage(serverType uint32, msg any, message netframe.OnNetMessage) {
+func (s *Slave) ListenServerMessage(serverType uint32, msg interface{}, message netframe.OnNetMessage) {
 	if message == nil {
 		return
 	}
 
-	s.net.ListenMessage(msg, func(cID uint32, cServerType uint32, msgId uint32, msgData []byte, cmsg any, extend netframe.Server_Extend) {
+	s.net.ListenMessage(msg, func(cID uint32, cServerType uint32, msgId uint32, msgData []byte, cmsg interface{}, extend netframe.Server_Extend) {
 		s.svrMutex.RLock()
 
 		if s.interceptFunc != nil {
@@ -491,7 +490,7 @@ func (s *Slave) OnConnect(ID uint32, serverType uint32) {
 		logger.WithFields(logrus.Fields{
 			"svrid":   ID,
 			"svrtype": serverType,
-		}).Trace("向master发送 检查配置请求", req)
+		}).Debug("向master发送 检查配置请求", req)
 
 		if s.masterNetConnect != nil {
 			s.masterNetConnect(ID, serverType)
@@ -515,7 +514,6 @@ func (s *Slave) OnClose(ID uint32, serverType uint32) {
 			if msta, ok := sinfo.mid2Status[ID]; ok {
 				msta.isConnected = false
 				msta.isWorking = false
-				msta.isUnloaded = false
 			}
 			if sinfo.fMasterID == ID {
 				sinfo.fMasterID = 0
@@ -546,7 +544,7 @@ func (s *Slave) OnBytes(ID uint32, serverType uint32, msgid uint32, bytes []byte
 	}
 }
 
-func (s *Slave) onReqVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) onReqVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	if serverType != s.masterType {
 		return
 	}
@@ -558,20 +556,20 @@ func (s *Slave) onReqVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ 
 		"serverType": serverType,
 	})
 
-	logger.Tracef("onReqVerifyConfigFile 1 Slave收到Master的配置校验请求 req=%v", req)
+	logger.Debugf("onReqVerifyConfigFile 1 Slave收到Master的配置校验请求 req=%v", req)
 
 	if strings.Compare(s.ClusterConfig.FileMd5, req.FileMd5) == 0 {
 		isCfgOk = true
-		logger.Tracef("onReqVerifyConfigFile 2 Slave 配置无变化. md5=%s", req.FileMd5)
+		logger.Debugf("onReqVerifyConfigFile 2 Slave 配置无变化. md5=%s", req.FileMd5)
 	} else if newConfig, err := s.ClusterConfig.LoadNewCfgFile(); err == nil {
 
-		logger.Tracef("onReqVerifyConfigFile 3 Slave(%v) netconfig配置（%s）已落后，加载新配置（%s) ", s.SlaveConfig.ServerID, s.ClusterConfig.FileMd5, newConfig.FileMd5)
+		logger.Debugf("onReqVerifyConfigFile 3 Slave(%v) netconfig配置（%s）已落后，加载新配置（%s) ", s.SlaveConfig.ServerID, s.ClusterConfig.FileMd5, newConfig.FileMd5)
 
 		if strings.Compare(req.FileMd5, newConfig.FileMd5) == 0 && s.canLoadNewConfig(newConfig) {
 			s.ClusterConfig = newConfig
 			isCfgOk = true
 
-			logger.Tracef("onReqVerifyConfigFile 4 Slave(%v) netconfig 成功设置新配置（%s) ", s.SlaveConfig.ServerID, newConfig.FileMd5)
+			logger.Debugf("onReqVerifyConfigFile 4 Slave(%v) netconfig 成功设置新配置（%s) ", s.SlaveConfig.ServerID, newConfig.FileMd5)
 
 			// 更新
 			for _, mitem := range s.id2Masters {
@@ -583,7 +581,7 @@ func (s *Slave) onReqVerifyConfigFile(ID uint32, serverType uint32, _ uint32, _ 
 	s.net.SendMsg(ID, &Slave_RepVerifyConfigFile{IsSucc: isCfgOk, Time: req.Time, ReqServerId: req.ReqServerId, ReqServerType: req.ReqServerType}, &netframe.Server_Extend{ServerId: serverType})
 }
 
-func (s *Slave) onPublishServerStatus(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) onPublishServerStatus(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 
 	// 集群内的服务状态更新的消息只能由Master推送
 	if serverType != s.masterType {
@@ -630,7 +628,7 @@ func (s *Slave) onPublishServerStatus(ID uint32, serverType uint32, _ uint32, _ 
 
 				rs.isConnected = req.IsConnected
 				rs.isWorking = req.IsWorking
-				rs.isUnloaded = req.DisableNewConsistentFLow
+				rs.disableNewHashFlow = req.DisableNewConsistentFLow
 
 				// 都连上了，选择fixmaster
 				if !server.isInitOk {
@@ -667,7 +665,9 @@ func (s *Slave) onPublishServerStatus(ID uint32, serverType uint32, _ uint32, _ 
 						if rs.isConnected {
 							s.checkShiftMaster(ID, req.ServerId)
 						}
-
+						// TODO: 重复的退出事件
+						// 如果服务在断线后重启, 由于先前的断线已经造成 fMasterID 的值归为0, 所以无法判断以哪个master为准,
+						// 但退出事件又必须通知给上层, 这是就可能造成上层连续收到多次同一服务的退出事件, 业务层重复的退出事件一般并不会影响逻辑, 这里还是列为TODO.
 						if !(event == SvrEventQuit && server.fMasterID == 0) {
 							event = 0
 						}
@@ -675,12 +675,12 @@ func (s *Slave) onPublishServerStatus(ID uint32, serverType uint32, _ uint32, _ 
 				}
 
 				logger.WithFields(logrus.Fields{
-					"svrid":      req.ServerId,
-					"svrtype":    req.ServerType,
-					"connected":  req.IsConnected,
-					"working":    req.IsWorking,
-					"isUnloaded": req.DisableNewConsistentFLow,
-				}).Debug("[Slave] Other Slave Server Status.")
+					"svrid":                    req.ServerId,
+					"svrtype":                  req.ServerType,
+					"connected":                req.IsConnected,
+					"working":                  req.IsWorking,
+					"disableNewConsistentFlow": req.DisableNewConsistentFLow,
+				}).Info("[Slave] Other Slave Server Status.")
 				if event != 0 && group.handler != nil {
 					s.svrMutex.Unlock()
 					group.handler(server.config.ServerID, event)
@@ -795,7 +795,7 @@ func (s *Slave) sendMsgQueue(sID uint32) {
 	}
 }
 
-func (s *Slave) onPublishLoadLevel(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) onPublishLoadLevel(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	if serverType != s.masterType {
 		return
 	}
@@ -899,7 +899,7 @@ func (s *Slave) checkShiftMaster(mID uint32, sID uint32) {
 	})
 }
 
-func (s *Slave) onShiftMasterReq(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) onShiftMasterReq(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	req := msg.(*Slave_ReqShiftFixMaster)
 	repmsg := &Slave_RepShiftFixMaster{
 		MasterID:  req.MasterID,
@@ -916,7 +916,7 @@ func (s *Slave) onShiftMasterReq(ID uint32, serverType uint32, _ uint32, _ []byt
 	}
 }
 
-func (s *Slave) onShiftMasterRep(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) onShiftMasterRep(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	rep := msg.(*Slave_RepShiftFixMaster)
 
 	s.svrMutex.Lock()
@@ -1014,22 +1014,11 @@ func (s *Slave) canLoadNewConfig(newConfig *ClusterConf) bool {
 }
 
 // OnSlaveReqPreCloseServer 准备关闭服务
-func (s *Slave) OnSlaveReqPreCloseServer(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
+func (s *Slave) OnSlaveReqPreCloseServer(ID uint32, serverType uint32, _ uint32, _ []byte, msg interface{}, extend netframe.Server_Extend) {
 	//req := msg.(*SS_CmdPrepareCloseServer)
 
 	for _, mitem := range s.id2Masters {
 		s.net.SendMsg(mitem.config.ServerID, &SM_ReqPrepareCloseMyself{}, &netframe.Server_Extend{
-			ServerId: mitem.config.ServerID,
-		})
-	}
-
-}
-
-func (s *Slave) OnSlaveReqUnloadServer(ID uint32, serverType uint32, _ uint32, _ []byte, msg any, extend netframe.Server_Extend) {
-	//req := msg.(*SS_CmdPrepareCloseServer)
-
-	for _, mitem := range s.id2Masters {
-		s.net.SendMsg(mitem.config.ServerID, &S2M_ReqUnloadMyself{}, &netframe.Server_Extend{
 			ServerId: mitem.config.ServerID,
 		})
 	}

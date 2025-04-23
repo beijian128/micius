@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github/beijian128/micius/frame/ioservice"
+	"github/beijian128/micius/frame/framework/worker"
 	"github/beijian128/micius/frame/network/connection"
 	"github/beijian128/micius/frame/network/crypto"
 	"github/beijian128/micius/frame/network/msgprocessor"
@@ -17,8 +17,8 @@ import (
 )
 
 // ServerConnectHandler ...
-// 如果是GT的话 ServerId/GateConnId = 0, ServerType = 0
-type ServerConnectHandler func(conn connection.Connection, ServerID uint32, ServerType uint32, ServerStartTime int64)
+// 如果是GT的话 ServerId/GateConnId = 0, uint32 = 0
+type ServerConnectHandler func(conn connection.Connection, ServerID uint32, uint32 uint32, ServerStartTime int64)
 
 // WorkerExitHandler ...
 type WorkerExitHandler func(conn connection.Connection, ServerStartTime int64)
@@ -41,7 +41,7 @@ type Server struct {
 	appConfig    *AppConfig
 	serverConfig *ServerConfig
 
-	handlerIO worker.Worker
+	handlerIO worker.IWorker
 	// 初始化之后, 该map只在主mainworker线程中访问
 	heartCheckTimers map[connection.Connection]*time.Timer
 
@@ -53,7 +53,7 @@ type Server struct {
 }
 
 // NewGateServer 创建监听服务器
-func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.Worker,
+func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.IWorker,
 	connectHandler ServerConnectHandler, closeHandler msgprocessor.CloseHandler,
 	bytesHandler msgprocessor.BytesHandler, msgHandlers msgprocessor.GetMsgHandler) *Server {
 	s := new(Server)
@@ -72,7 +72,7 @@ func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.W
 		connid := genGateConnID()
 
 		//心跳时间设置
-		s.heartCheckTimers[conn] = time.AfterFunc(heartBeatWaitTime2, func() {
+		s.heartCheckTimers[conn] = time.AfterFunc(heartBeatWaitTime2*100, func() {
 			conn.Close()
 			logger.WithField("serveraddr", conn.RemoteAddr()).Warning("gate server heartbeat timeout")
 		})
@@ -171,7 +171,7 @@ func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.W
 }
 
 // NewCommonServer ...
-func NewCommonServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.Worker,
+func NewCommonServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.IWorker,
 	connectHandler ServerConnectHandler, closeHandler msgprocessor.CloseHandler,
 	bytesHandler msgprocessor.BytesHandler, msgHandlers msgprocessor.GetMsgHandler, exitHandler WorkerExitHandler) *Server {
 	s := new(Server)

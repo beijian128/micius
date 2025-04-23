@@ -1,6 +1,7 @@
 package msgprocessor
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -139,7 +140,8 @@ func OnUnmarshal(id uint32, data []byte) (any, error) {
 	//fmt.Println("recv data ", data)
 	if msgType, bHave := MessageType(id); bHave {
 		msg := reflect.New(msgType.Elem()).Interface()
-		err := proto.UnmarshalMerge(data, msg.(proto.Message))
+		//err := proto.UnmarshalMerge(data, msg.(proto.Message))
+		err := json.Unmarshal(data, msg.(proto.Message))
 
 		return msg, err
 	}
@@ -154,15 +156,16 @@ func OnMarshal(msg any) (uint32, []byte, error) {
 
 	if msgID, bHave := MessageID(msgType); bHave {
 		// data
-		data, err := proto.Marshal(msg.(proto.Message))
+		//data, err := proto.Marshal(msg.(proto.Message))
+		data, err := json.Marshal(msg.(proto.Message))
 
 		return msgID, data, err
 	}
 
 	if msgID, e := RegisterMessage(msg); e == nil {
 		// data
-		data, err := proto.Marshal(msg.(proto.Message))
-
+		//data, err := proto.Marshal(msg.(proto.Message))
+		data, err := json.Marshal(msg.(proto.Message))
 		return msgID, data, err
 	}
 

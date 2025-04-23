@@ -2,11 +2,11 @@ package msgprocessor
 
 import (
 	"fmt"
+	"github/beijian128/micius/frame/framework/worker"
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
 
-	"github/beijian128/micius/frame/ioservice"
 	"github/beijian128/micius/frame/network/connection"
 )
 
@@ -21,11 +21,11 @@ type MetaProcessor struct {
 	//MonitorHandler   func(conn connection.Connection,ext any,msgId uint32,msgData []byte)
 
 	extType    reflect.Type
-	callbackIO worker.Worker
+	callbackIO worker.IWorker
 }
 
 // NewMetaProcessor ...
-func NewMetaProcessor(ext any, worker worker.Worker) *MetaProcessor {
+func NewMetaProcessor(ext any, worker worker.IWorker) *MetaProcessor {
 	if worker == nil {
 		panic("init MetaProcessor ioservice is nil")
 	}
@@ -67,7 +67,7 @@ func (p *MetaProcessor) OnEncodeExt(ext any) (extData []byte, err error) {
 // OnConnect ...
 func (p *MetaProcessor) OnConnect(conn connection.Connection) {
 	if p.ConnectHandler != nil {
-		p.callbackIO.Push(func() {
+		p.callbackIO.Post(func() {
 			p.ConnectHandler(conn)
 		})
 	}
@@ -76,7 +76,7 @@ func (p *MetaProcessor) OnConnect(conn connection.Connection) {
 // OnClose ...
 func (p *MetaProcessor) OnClose(conn connection.Connection) {
 	if p.CloseHandler != nil {
-		p.callbackIO.Push(func() {
+		p.callbackIO.Post(func() {
 			p.CloseHandler(conn)
 		})
 	}
@@ -87,7 +87,7 @@ func (p *MetaProcessor) OnMessage(conn connection.Connection, ext any, msgid uin
 	handler, ok := p.findMsgHandler(msgid)
 	if !ok {
 		if p.BytesHandler != nil {
-			p.callbackIO.Push(func() {
+			p.callbackIO.Post(func() {
 				p.BytesHandler(conn, ext, msgid, msgData)
 			})
 		}
@@ -99,7 +99,7 @@ func (p *MetaProcessor) OnMessage(conn connection.Connection, ext any, msgid uin
 		return err
 	}
 
-	p.callbackIO.Push(func() {
+	p.callbackIO.Post(func() {
 		handler(conn, ext, msgid, msgData, msg)
 	})
 

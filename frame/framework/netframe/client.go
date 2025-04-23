@@ -1,17 +1,17 @@
 package netframe
 
 import (
+	"github/beijian128/micius/frame/framework/worker"
 	"reflect"
 	"time"
 
-	"github/beijian128/micius/frame/ioservice"
 	"github/beijian128/micius/frame/network/connection"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/network/tcp"
 )
 
 // ClientConnectHandler ...
-type ClientConnectHandler func(conn connection.Connection, ServerID uint32, ServerType uint32, ServerStartTime int64)
+type ClientConnectHandler func(conn connection.Connection, ServerID uint32, uint32 uint32, ServerStartTime int64)
 
 // Client ...
 type Client struct {
@@ -20,7 +20,7 @@ type Client struct {
 	appConfig    *AppConfig
 	clientConfig *ClientConfig
 
-	handlerIO worker.Worker
+	handlerIO worker.IWorker
 
 	heartCheckTimer     *time.Timer
 	heartIntervalTicker *time.Ticker
@@ -31,7 +31,7 @@ type Client struct {
 }
 
 // NewClient 创建连接客户端
-func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.Worker,
+func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.IWorker,
 	connectHandler ClientConnectHandler, closeHandler msgprocessor.CloseHandler,
 	bytesHandler msgprocessor.BytesHandler, msgHandlers msgprocessor.GetMsgHandler) *Client {
 	c := new(Client)
