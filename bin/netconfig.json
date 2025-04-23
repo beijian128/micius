@@ -1,0 +1,58 @@
+{
+  "masters": {
+    "master1": {
+      "id": 101,
+      "type": 1,
+      "addr": "127.0.0.1:4000",
+      "slweights": {
+
+      },
+      "shiftload": 5,
+      "log": {
+        "level": 5,
+        "outputs": {
+          "file": {
+            "path": "./logs",
+            "rotate": true,
+            "json": true
+          }
+        }
+      }
+    }
+  },
+  "slaves": {
+    "gate1": {
+      "id": 201,
+      "type": 2,
+      "addr": "0.0.0.0:8002",
+      "log": {
+        "level": 5,
+        "outputs": {
+          "file": {
+            "path": "./logs",
+            "rotate": true,
+            "json": true
+          }
+        }
+      },
+      "disableWSCheckOrigin": true,
+      "useWebSocket": true,
+      "disableCrypto": true,
+      "disableSeqChecker": true
+    },
+    "lobby1": {
+      "id": 401,
+      "type": 4,
+      "log": {
+        "level": 5,
+        "outputs": {
+          "file": {
+            "path": "./logs",
+            "rotate": true,
+            "json": true
+          }
+        }
+      }
+    }
+  }
+}

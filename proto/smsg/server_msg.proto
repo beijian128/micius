@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// 服务内部交互协议
+
+package smsg;
+//import "github/beijian128/micius/proto/gameconf/game_type.proto";
+//import "github/beijian128/micius/proto/def/def.proto";
+//import "github/beijian128/micius/proto/db/db.proto";
+
+
+// gate->lobby
+message NoticeSessionClosed {
+  uint64 userid = 1;
+  uint64 session = 2;
+}

@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package netcluster;
+
+option go_package = "mxb/netcluster";
+
+
+message Master_PublishServerStatus {
+    uint32 ServerId = 1;
+    uint32 ServerType = 2;
+    bool IsConnected = 3;
+    bool IsWorking = 4;
+    bool DisableNewConsistentFLow = 5;
+}
+
+message Slave_ReportLoadLevel {
+    bool isFix = 1;
+    uint32 AServerID = 2;
+    uint32 BServerID = 3;
+}
+
+message Master_PublishLoadLevel {
+    uint32 LoadLevel = 1;
+}
+
+message Slave_ReqShiftFixMaster {
+    uint32 MasterID = 1;
+    uint32 AServerID = 2;
+    uint32 BServerID = 3;
+}
+message Slave_RepShiftFixMaster {
+    uint32 MasterID = 1;
+    uint32 AServerID = 2;
+    uint32 BServerID = 3;
+}
+
+message Slave_ReqVerifyConfigFile {
+    string  FileMd5 = 1;
+}
+
+message Master_ReqVerifyConfigFile {
+    string  FileMd5 = 1;
+    int64   Time = 2;
+    uint32  ReqServerId = 3;
+    uint32  ReqServerType = 4;
+}
+
+message Slave_RepVerifyConfigFile {
+    bool    IsSucc = 1;
+    int64   Time = 2;
+    uint32  ReqServerId = 3;
+    uint32  ReqServerType = 4;
+}
+
+message Slave_UptConfigMd5 {
+    string  FileMd5 = 1;
+}
+
+// gm命令slave准备停止服务(slave->slave)
+message SS_CmdPrepareCloseServer {
+}
+
+// 我要准备关闭了 (slave->master)
+message SM_ReqPrepareCloseMyself {
+}
+
+// slave->slave 通知关闭服务
+message SS_CmdCloseServer {
+}
+
+// --------------------
+
+// 基于哈希负载均衡策略的服务做热更新时，需将新流量导向新服务
+
+// adminsvr 发送gm命令，让某些slave不再接入新用户的请求 （不影响旧用户，旧用户仍可以正常享有这些slave的服务）
+message S2S_CmdUnloadServer {
+}
+
+//  (slave->master) slave告知master，已经绑定“我”的旧用户的请求仍然交给”我“处理，但“我”不再接受新用户的请求，对新用户的请求做负载均衡的时候别把“我”算进去
+message S2M_ReqUnloadMyself {
+}
+
+// ----------------

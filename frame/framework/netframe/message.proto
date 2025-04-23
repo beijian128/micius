@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package netframe;
+//option go_package = "netframe";
+option go_package = "mxb/netframe";
+
+// extend message
+message Server_Extend {
+    uint32 ServerId = 1;
+    uint64 SessionId = 2;
+    int64 SeqId = 3; // s/s 内部服务间RPC 序列号
+    uint64 UserId = 4;
+    int64 ExtParam = 5;//扩展参数
+
+    message RouterMeta{
+        uint32 reqFrom = 1; // req 的发起者 svrID
+    }
+    RouterMeta routerMeta = 6;
+
+    string account = 7;
+    bytes clientData = 8; // c/s  客户端生成的协议序列号，原样返回
+}
+
+// heart 
+message Server_ReqHeartBeat {
+    int64 TimeStamp = 1;
+}
+
+message Server_RespHeartBeat {
+    int64 TimeStamp = 1;
+}
+
+// client->server 注册
+message Server_ReqRegister {
+    uint32 ClientType = 1;
+    uint32 ClientId = 2;
+    int64 ClientStartTime = 3;
+}
+
+// server->client 
+message Server_RespRegister {
+    uint32 ServerType = 1;
+    uint32 ServerId = 2;
+    int64 ServerStartTime = 3;
+}
+
+// client->server 取消注册
+message Server_ReportUnRegister {
+    int64 ServerStartTime = 1;
+}
+
+
+
+
+
+
+// client
+
+message Client_ReqHeartBeat {
+    int64 timeStamp = 1;
+}
+
+message Client_RespHeartBeat {
+    int64 timeStamp = 1;
+}
+
+

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+
+// 客户端与服务端交互协议
+
+package cmsg;
+
+//import "github/beijian128/micius/proto/gameconf/game_type.proto";
+//import "github/beijian128/micius/proto/def/def.proto";
+
+enum Code{
+  OK = 0;
+  Unknown = 1;
+}
+
+// 登录服务器并进入聊天室
+message CReqLogin {
+  string account = 1;
+}
+
+message SRespLogin {
+  Code code = 1;
+}
+
+// 发送聊天消息
+message CReqSendChatMessage{
+  string text = 1;
+}
+
+message SRespSendChatMessage{
+  Code code = 1;
+}
+
+// 有其他玩家进入聊天室
+message SNotifyUserEnter{
+    string account = 1;
+}
+// 有其他玩家离开聊天室
+message SNotifyUserLeave{
+    string account = 1;
+}
+// 同步其他玩家的聊天消息
+message SNotifyUserChatMessage{
+    string account = 1;
+    string text = 2;
+}
