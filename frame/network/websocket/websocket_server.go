@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 
-	"github/beijian128/micius/frame/network/crypto"
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 )
@@ -24,7 +23,6 @@ type Server struct {
 	wg           sync.WaitGroup
 	msgPackager  msgpackager.MsgPackager
 	msgProcessor msgprocessor.MsgProcessor
-	newCrypto    func() crypto.Crypto
 
 	upgrader websocket.Upgrader
 	httpSvr  *http.Server
@@ -39,7 +37,6 @@ func NewServer(
 	closeBuffFull bool,
 	msgPackager msgpackager.MsgPackager,
 	msgProcessor msgprocessor.MsgProcessor,
-	newCrypto func() crypto.Crypto,
 	disableCheckOrigin bool,
 	openTLS bool, //是否开启TLS
 	certFile string,
@@ -48,7 +45,6 @@ func NewServer(
 	s := new(Server)
 	s.msgPackager = msgPackager
 	s.msgProcessor = msgProcessor
-	s.newCrypto = newCrypto
 
 	if disableCheckOrigin {
 		s.upgrader.CheckOrigin = func(*http.Request) bool {
@@ -64,7 +60,7 @@ func NewServer(
 			return
 		}
 
-		conn := newConnection(c, true, writeChanLen, closeBuffFull, msgPackager, msgProcessor, newCrypto())
+		conn := newConnection(c, true, writeChanLen, closeBuffFull, msgPackager, msgProcessor)
 		conn.readLoop()
 	})
 

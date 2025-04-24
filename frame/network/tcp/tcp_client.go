@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github/beijian128/micius/frame/network/connection"
-	"github/beijian128/micius/frame/network/crypto"
+
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/util"
@@ -38,12 +38,11 @@ type Client struct {
 	// msg msgprocessor
 	MsgProcessor msgprocessor.MsgProcessor
 
-	newCrypto  func() crypto.Crypto
 	seqChecker *seqchecker.SeqIDChecker
 }
 
 // NewTCPClient ...
-func NewTCPClient(name string, addr string, connCnt int, isAutoReconnect bool, autoReconnectInterval time.Duration, tcpConnWriteChanLen int, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor, newCrypto func() crypto.Crypto, checker *seqchecker.SeqIDChecker) *Client {
+func NewTCPClient(name string, addr string, connCnt int, isAutoReconnect bool, autoReconnectInterval time.Duration, tcpConnWriteChanLen int, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor) *Client {
 	tcpClient := new(Client)
 
 	tcpClient.isClosed = false
@@ -54,11 +53,6 @@ func NewTCPClient(name string, addr string, connCnt int, isAutoReconnect bool, a
 
 	tcpClient.MsgPackager = msgPackager
 	tcpClient.MsgProcessor = msgProcessor
-	tcpClient.newCrypto = newCrypto
-	if tcpClient.newCrypto == nil {
-		tcpClient.newCrypto = func() crypto.Crypto { return nil }
-	}
-	tcpClient.seqChecker = checker
 
 	if connCnt > TCPClientMaxConnCnt {
 		connCnt = TCPClientMaxConnCnt
@@ -145,7 +139,7 @@ reconnect:
 	}
 
 	client.index = client.index + 1
-	tcpConn := newTCPConn(fmt.Sprintf("%s-%d", name, client.index), conn, false, tcpConnWriteChanLen, false, client.MsgPackager, client.MsgProcessor, client.newCrypto(), client.seqChecker)
+	tcpConn := newTCPConn(fmt.Sprintf("%s-%d", name, client.index), conn, false, tcpConnWriteChanLen, false, client.MsgPackager, client.MsgProcessor)
 	client.conns[conn] = tcpConn
 	//client.connsCnt.Add(1)
 	client.connsMutex.Unlock()

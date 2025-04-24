@@ -6,7 +6,6 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github/beijian128/micius/frame/network/crypto"
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/util"
@@ -51,7 +50,6 @@ type connection struct {
 
 	msgPackager  msgpackager.MsgPackager
 	msgProcessor msgprocessor.MsgProcessor
-	crypto       crypto.Crypto
 
 	closed        int32
 	writeCh       chan msg
@@ -65,14 +63,12 @@ func newConnection(
 	closeBuffFull bool,
 	msgPackager msgpackager.MsgPackager,
 	msgProcessor msgprocessor.MsgProcessor,
-	crypto crypto.Crypto,
 ) *connection {
 	c := new(connection)
 	c.c = conn
 	c.isServer = isServer
 	c.msgPackager = msgPackager
 	c.msgProcessor = msgProcessor
-	c.crypto = crypto
 	c.writeCh = make(chan msg, writeChanLen)
 	c.closeBuffFull = closeBuffFull
 
@@ -165,7 +161,7 @@ func (c *connection) writeLoop() {
 			break
 		}
 
-		err = c.msgPackager.WriteMsg(w, msgid, extData, msgData, c.crypto)
+		err = c.msgPackager.WriteMsg(w, msgid, extData, msgData)
 		if err != nil {
 			w.Close()
 			logger.WithField("msgid", msgid).WithError(err).Error("Conn write message")
@@ -208,7 +204,7 @@ func (c *connection) readLoop() {
 			break
 		}
 
-		msgid, extData, msgData, err := c.msgPackager.ReadMsg(r, c.crypto, nil)
+		msgid, extData, msgData, err := c.msgPackager.ReadMsg(r)
 		if c.isClosed() {
 			break
 		}

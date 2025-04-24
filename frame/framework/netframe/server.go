@@ -1,16 +1,13 @@
 package netframe
 
 import (
-	"encoding/binary"
 	"github.com/sirupsen/logrus"
-	seqchecker2 "github/beijian128/micius/frame/network/seqchecker"
 	"reflect"
 	"sync/atomic"
 	"time"
 
 	"github/beijian128/micius/frame/framework/worker"
 	"github/beijian128/micius/frame/network/connection"
-	"github/beijian128/micius/frame/network/crypto"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/network/tcp"
 	"github/beijian128/micius/frame/network/websocket"
@@ -117,19 +114,6 @@ func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.I
 
 	s.msgHandlers = msgHandlers
 
-	newCrypto := func() crypto.Crypto {
-		return crypto.NewAesCryptoUseDefaultKey()
-	}
-	if s.serverConfig.DisableCrypto {
-		newCrypto = func() crypto.Crypto {
-			return nil
-		}
-	}
-	var seqChecker *seqchecker2.SeqIDChecker
-	if !s.serverConfig.DisableSeqChecker {
-		seqChecker = seqchecker2.NewSeqIDChecker(binary.LittleEndian)
-	}
-
 	//只支持单个类型
 	if s.serverConfig.UseWebsocket {
 		svr, err := websocket.NewServer(
@@ -140,7 +124,6 @@ func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.I
 			true,
 			gatePackager,
 			gateProcessor,
-			newCrypto,
 			s.serverConfig.DisableWSCheckOrigin,
 			s.serverConfig.OpenTLS,
 			s.serverConfig.CertFile,
@@ -159,8 +142,7 @@ func NewGateServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker.I
 			tcpGateWriteChanLen,
 			true,
 			gatePackager,
-			gateProcessor,
-			newCrypto, seqChecker)
+			gateProcessor)
 		if svr == nil {
 			return nil
 		}
@@ -262,7 +244,6 @@ func NewCommonServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker
 			true,
 			commonPackager,
 			commonProcessor,
-			nil,
 			s.serverConfig.DisableWSCheckOrigin,
 			s.serverConfig.OpenTLS,
 			s.serverConfig.CertFile,
@@ -280,9 +261,7 @@ func NewCommonServer(appConfig *AppConfig, serverConfig *ServerConfig, io worker
 			tcpCommonWriteChanLen,
 			true,
 			commonPackager,
-			commonProcessor,
-			nil,
-			nil)
+			commonProcessor)
 		if svr == nil {
 			return nil
 		}

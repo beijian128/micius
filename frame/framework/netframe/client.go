@@ -96,9 +96,6 @@ func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.IWork
 	commonProcessor.BytesHandler = bytesHandler
 
 	c.msgHeartBeatHandler = func(conn connection.Connection, ext any, _ uint32, _ []byte, msg any) {
-		//if c.appConfig.ServerID == 201 {
-		//	logger.WithField("heartBeat", conn.RemoteAddr()).Info("client heartbeat resp", appConfig.ServerID)
-		//}
 		c.heartCheckTimer.Reset(heartBeatWaitTime)
 	}
 	c.msgRegisterHandler = func(conn connection.Connection, ext any, _ uint32, _ []byte, msg any) {
@@ -110,7 +107,7 @@ func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.IWork
 
 	c.msgHandlers = msgHandlers
 
-	c.baseClient = tcp.NewTCPClient(c.clientConfig.Name, c.clientConfig.ConnectAddr, 1, true, autoReconnetInterval, tcpCommonWriteChanLen, commonPackager, commonProcessor, nil, nil)
+	c.baseClient = tcp.NewTCPClient(c.clientConfig.Name, c.clientConfig.ConnectAddr, 1, true, autoReconnetInterval, tcpCommonWriteChanLen, commonPackager, commonProcessor)
 	if c.baseClient == nil {
 		return nil
 	}

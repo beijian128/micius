@@ -4,8 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github/beijian128/micius/frame/network/crypto"
-	"github/beijian128/micius/frame/network/seqchecker"
+
 	"io"
 	"math"
 )
@@ -137,7 +136,7 @@ func NewMetaPackager(extLenSize int, msgLenSize int, byteOrder binary.ByteOrder,
 }
 
 // ReadMsg ...
-func (p *metaPackager) ReadMsg(reader io.Reader, crypto crypto.Crypto, checker *seqchecker.SeqIDChecker) (msgId uint32, extData []byte, msgData []byte, err error) {
+func (p *metaPackager) ReadMsg(reader io.Reader) (msgId uint32, extData []byte, msgData []byte, err error) {
 
 	if p.isGate {
 		extData = make([]byte, 12)
@@ -175,10 +174,6 @@ func (p *metaPackager) ReadMsg(reader io.Reader, crypto crypto.Crypto, checker *
 
 	body := msgBodyWithMsgID[MessageIDSize:]
 
-	if crypto != nil {
-		crypto.Decrypt(body, body)
-	}
-
 	// ext
 	if p.extMaxLen != 0 && extLen > 0 {
 		return msgid, body[:extLen], body[extLen:], nil
@@ -188,10 +183,8 @@ func (p *metaPackager) ReadMsg(reader io.Reader, crypto crypto.Crypto, checker *
 }
 
 // WriteMsg ...
-func (p *metaPackager) WriteMsg(writer io.Writer, id uint32, extdata []byte, msgdata []byte, crypto crypto.Crypto) error {
-	if crypto != nil {
-		crypto.Encrypt(msgdata, msgdata)
-	}
+func (p *metaPackager) WriteMsg(writer io.Writer, id uint32, extdata []byte, msgdata []byte) error {
+
 	msgLen := uint32(len(msgdata))
 
 	if msgLen > p.msgMaxLen {

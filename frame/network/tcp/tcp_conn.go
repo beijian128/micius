@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github/beijian128/micius/frame/network/crypto"
+
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/util"
@@ -50,14 +50,14 @@ type Conn struct {
 
 	msgPackager  msgpackager.MsgPackager
 	msgProcessor msgprocessor.MsgProcessor
-	crypto       crypto.Crypto
-	seqChecker   *seqchecker.SeqIDChecker
+
+	seqChecker *seqchecker.SeqIDChecker
 
 	localAddr  net.Addr
 	remoteAddr net.Addr
 }
 
-func newTCPConn(name string, conn net.Conn, isServer bool, tcpConnWriteChanLen int, bCloseBuffFull bool, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor, crypto crypto.Crypto, checker *seqchecker.SeqIDChecker) *Conn {
+func newTCPConn(name string, conn net.Conn, isServer bool, tcpConnWriteChanLen int, bCloseBuffFull bool, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor) *Conn {
 	tcpConn := new(Conn)
 
 	tcpConn.name = name
@@ -69,8 +69,6 @@ func newTCPConn(name string, conn net.Conn, isServer bool, tcpConnWriteChanLen i
 
 	tcpConn.msgPackager = msgPackager
 	tcpConn.msgProcessor = msgProcessor
-	tcpConn.crypto = crypto
-	tcpConn.seqChecker = checker
 
 	tcpConn.localAddr = conn.LocalAddr()
 	tcpConn.remoteAddr = conn.RemoteAddr()
@@ -243,7 +241,7 @@ func (tcpConn *Conn) WriteLoop() {
 		}
 
 		// 打包消息
-		err3 := tcpConn.msgPackager.WriteMsg(tcpConn.conn, msgid, extData, data, tcpConn.crypto)
+		err3 := tcpConn.msgPackager.WriteMsg(tcpConn.conn, msgid, extData, data)
 		if err3 != nil {
 			if err3 != io.EOF {
 				if tcpConn.isServer {
@@ -270,7 +268,7 @@ func (tcpConn *Conn) ReadLoop() {
 	tcpConn.msgProcessor.OnConnect(tcpConn)
 
 	for {
-		msgid, extData, msgData, err1 := tcpConn.msgPackager.ReadMsg(tcpConn.conn, tcpConn.crypto, tcpConn.seqChecker)
+		msgid, extData, msgData, err1 := tcpConn.msgPackager.ReadMsg(tcpConn.conn)
 		if err1 != nil {
 			if err1 != io.EOF {
 				if tcpConn.isServer {

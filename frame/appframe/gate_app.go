@@ -8,16 +8,11 @@ import (
 	"github/beijian128/micius/frame/util"
 )
 
-type IGateApp interface {
-	IsShortNetwork() bool
-	Run()
-}
-
 // GateApplication 面向客户端连接管理的 Application.
 type GateApplication struct {
 	Application
 
-	msgid2router map[uint32]GateSessionRawMsgRouter
+	router map[uint32]GateSessionRawMsgRouter
 }
 
 // NewGateApplication 创建 Application
@@ -44,13 +39,13 @@ func (a *GateApplication) init(netconfig *netcluster.ClusterConf, name string) e
 	if err != nil {
 		return err
 	}
-	a.msgid2router = make(map[uint32]GateSessionRawMsgRouter)
+	a.router = make(map[uint32]GateSessionRawMsgRouter)
 	// 将来自用户会话的消息转发到目标服务器.
 	a.slave.ListenClientBytes(func(sid uint32, _ uint32, msgid uint32, data []byte, extend netframe.Server_Extend) {
 		if a.IsExit() {
 			return
 		}
-		router, ok := a.msgid2router[msgid]
+		router, ok := a.router[msgid]
 		if ok {
 			router(toSession64(sid), msgid, data, extend.ExtParam)
 		} else {
@@ -117,7 +112,7 @@ func (a *GateApplication) ListenSessionMsg(msg proto.Message, handler GateSessio
 // RouteSessionRawMsg 设置消息路由函数, 未 ListenSessionMsg 的消息会调用该函数.
 func (a *GateApplication) RouteSessionRawMsg(msg proto.Message, router GateSessionRawMsgRouter) {
 	msgid := util.StringHash(proto.MessageName(msg))
-	a.msgid2router[msgid] = router
+	a.router[msgid] = router
 }
 
 // GetSession 获取用户会话对象

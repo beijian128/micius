@@ -3,7 +3,7 @@ package tcp
 import (
 	"expvar"
 	"fmt"
-	"github/beijian128/micius/frame/network/seqchecker"
+
 	"net"
 	"sync"
 	"time"
@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github/beijian128/micius/frame/network/connection"
-	"github/beijian128/micius/frame/network/crypto"
+
 	"github/beijian128/micius/frame/network/msgpackager"
 	"github/beijian128/micius/frame/network/msgprocessor"
 	"github/beijian128/micius/frame/util"
@@ -41,13 +41,10 @@ type Server struct {
 	MsgPackager msgpackager.MsgPackager
 	// msg msgprocessor
 	MsgProcessor msgprocessor.MsgProcessor
-
-	newCrypto func() crypto.Crypto
-	*seqchecker.SeqIDChecker
 }
 
 // NewTCPServer start no block
-func NewTCPServer(name string, addr string, maxConnCnt int, tcpConnWriteChanLen int, bCloseBuffFull bool, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor, newCrypto func() crypto.Crypto, checker *seqchecker.SeqIDChecker) *Server {
+func NewTCPServer(name string, addr string, maxConnCnt int, tcpConnWriteChanLen int, bCloseBuffFull bool, msgPackager msgpackager.MsgPackager, msgProcessor msgprocessor.MsgProcessor) *Server {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.WithField("addr", addr).Error("new tcp server failed")
@@ -62,11 +59,6 @@ func NewTCPServer(name string, addr string, maxConnCnt int, tcpConnWriteChanLen 
 
 	tcpServer.MsgPackager = msgPackager
 	tcpServer.MsgProcessor = msgProcessor
-	tcpServer.newCrypto = newCrypto
-	if tcpServer.newCrypto == nil {
-		tcpServer.newCrypto = func() crypto.Crypto { return nil }
-	}
-	tcpServer.SeqIDChecker = checker
 
 	if maxConnCnt <= 0 {
 		maxConnCnt = TCPServerMaxConnCnt
@@ -153,7 +145,7 @@ func (server *Server) run(name string, maxConnCnt int, tcpConnWriteChanLen int, 
 
 		//新建链接对象
 		server.index = server.index + 1
-		tcpConn := newTCPConn(fmt.Sprintf("%s-%d", name, server.index), conn, true, tcpConnWriteChanLen, bCloseBuffFull, server.MsgPackager, server.MsgProcessor, server.newCrypto(), server.SeqIDChecker)
+		tcpConn := newTCPConn(fmt.Sprintf("%s-%d", name, server.index), conn, true, tcpConnWriteChanLen, bCloseBuffFull, server.MsgPackager, server.MsgProcessor)
 		server.conns[conn] = tcpConn
 		server.connsCnt.Add(1)
 		server.connsMutex.Unlock()

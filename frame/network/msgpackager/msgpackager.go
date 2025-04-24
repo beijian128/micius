@@ -2,15 +2,14 @@ package msgpackager
 
 import (
 	"encoding/binary"
-	"github/beijian128/micius/frame/network/crypto"
-	"github/beijian128/micius/frame/network/seqchecker"
+
 	"io"
 )
 
 // MsgPackager 管理协议的组织
 type MsgPackager interface {
-	ReadMsg(reader io.Reader, crypto crypto.Crypto, checker *seqchecker.SeqIDChecker) (msgId uint32, extData []byte, msgData []byte, error error)
-	WriteMsg(writer io.Writer, id uint32, extdata []byte, msgdata []byte, crypto crypto.Crypto) error
+	ReadMsg(reader io.Reader) (msgId uint32, extData []byte, msgData []byte, error error)
+	WriteMsg(writer io.Writer, id uint32, extdata []byte, msgdata []byte) error
 }
 
 var (
