@@ -24,6 +24,12 @@ func onNoticeSessionClosed(sender appframe.Server, notice *smsg.NoticeSessionClo
 		return
 	}
 	u.onDisconnect()
+	userMgr.execByEverySession(func(u2 *user, b bool) {
+		if u2.session == sid {
+			return
+		}
+		u2.SendMsg(&cmsg.SNotifyUserLeave{Account: u.account})
+	})
 }
 
 func onReqLogin(sender appframe.Session, req *cmsg.CReqLogin) {
@@ -33,25 +39,32 @@ func onReqLogin(sender appframe.Session, req *cmsg.CReqLogin) {
 	u, ok := userMgr.findUserBySessionID(sid)
 	if !ok {
 		u = userMgr.newUser(userId)
-		u.account = req.Account
 		userMgr.addSession(sid, u)
 	}
+	u.account = req.Account
 
 	u.onConnect(sid)
 
 	u.loginState = StateLogin
 	resp := &cmsg.SRespLogin{Code: 0}
 	sender.SendMsg(resp)
+
+	userMgr.execByEverySession(func(u2 *user, b bool) {
+		if u2.session == sender.ID() {
+			return
+		}
+		u2.SendMsg(&cmsg.SNotifyUserEnter{Account: u.account})
+	})
 }
 
 func onReqSendChatMessage(sender appframe.Session, req *cmsg.CReqSendChatMessage) {
-	//sid := sender.ID()
-	//u, _ := userMgr.findUserBySessionID(sid)
-	userMgr.execByEverySession(func(u *user, b bool) {
-		if u.session == sender.ID() {
+	sid := sender.ID()
+	u, _ := userMgr.findUserBySessionID(sid)
+	userMgr.execByEverySession(func(u2 *user, b bool) {
+		if u2.session == sender.ID() {
 			return
 		}
-		u.SendMsg(&cmsg.SNotifyUserChatMessage{
+		u2.SendMsg(&cmsg.SNotifyUserChatMessage{
 			Account: u.account,
 			Text:    req.Text,
 		})

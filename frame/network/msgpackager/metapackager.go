@@ -213,7 +213,10 @@ func (p *metaPackager) WriteMsg(writer io.Writer, id uint32, extdata []byte, msg
 	copy(buffer[pos:], msgdata)
 
 	if p.isGate { // 12 字节的消息唯一号 原样放回
-		buffer = append(make([]byte, 12), buffer...)
+		if len(extdata) != 12 {
+			extdata = make([]byte, 12)
+		}
+		buffer = append(extdata, buffer...)
 	}
 	// write to io
 

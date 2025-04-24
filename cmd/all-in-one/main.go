@@ -123,8 +123,12 @@ func main() {
 		app.Run()
 	})
 
-	http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
-	http.ListenAndServe(":8080", nil)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	wg.Wait()
 }

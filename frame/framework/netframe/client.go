@@ -44,9 +44,6 @@ func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.IWork
 		//心跳时间设置
 		c.heartCheckTimer = time.AfterFunc(heartBeatWaitTime, func() {
 			conn.Close()
-			//if c.appConfig.ServerID == 201 {
-			//	logger.WithField("id", c.appConfig.ServerID).WithField("serveraddr", conn.RemoteAddr()).Error("client heartbeat timeout")
-			//}
 		})
 
 		// 每隔多久发一次心跳
@@ -54,12 +51,6 @@ func NewClient(appConfig *AppConfig, clientConfig *ClientConfig, io worker.IWork
 		go func() {
 			for range c.heartIntervalTicker.C {
 				t := time.Now().Unix()
-				//if c.appConfig.ServerID == 201 {
-				//	logger.WithFields(logrus.Fields{
-				//		"to":   clientConfig,
-				//		"from": appConfig,
-				//	}).Debug("client heartbeat req")
-				//}
 				c.SendMsg(conn, appConfig.ServerID, 0, 0, &Server_ReqHeartBeat{
 					TimeStamp: t,
 				})
