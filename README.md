@@ -11,3 +11,5 @@ cd bin
 go run ../cmd/all-in-one/main.go
 
 浏览器打开多个 http://localhost:8080/web/chat.html,体验多人聊天。
+
+![img.png](img/img.png?t=1745469509685)
