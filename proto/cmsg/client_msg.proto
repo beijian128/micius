@@ -41,3 +41,7 @@ message SNotifyUserChatMessage{
     string account = 1;
     string text = 2;
 }
+
+message SNotifyUserList{
+  repeated string accounts = 1;
+}

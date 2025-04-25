@@ -55,6 +55,12 @@ func onReqLogin(sender appframe.Session, req *cmsg.CReqLogin) {
 		}
 		u2.SendMsg(&cmsg.SNotifyUserEnter{Account: u.account})
 	})
+
+	userList := make([]string, 0, len(userMgr.ss2user))
+	for _, u2 := range userMgr.ss2user {
+		userList = append(userList, u2.account)
+	}
+	u.SendMsg(&cmsg.SNotifyUserList{Accounts: userList})
 }
 
 func onReqSendChatMessage(sender appframe.Session, req *cmsg.CReqSendChatMessage) {
