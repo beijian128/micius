@@ -12,4 +12,10 @@ go run ../cmd/all-in-one/main.go
 
 浏览器打开多个 http://localhost:8080/web/,体验多人聊天。
 
-![img.png](img/img.png?t=1745469509685)
+
+
+
+![image.png](img/login.png)
+
+
+![image.png](img/image.png)
