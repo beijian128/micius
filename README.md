@@ -44,10 +44,10 @@ MiniChat 是一个基于Go语言实现的轻量级实时聊天室Demo，使用We
 ## 界面展示
 
 
-![image.png](img/login.png)
+![login.png](img/login.png)
 
 
-![image.png](img/image.png)
+![chat.png](img/image.png)
 
 
 
