@@ -1,7 +1,6 @@
 package lobby
 
 import (
-	"github/beijian128/micius/config"
 	"github/beijian128/micius/frame/appframe"
 	_ "net/http/pprof"
 )
@@ -10,17 +9,11 @@ var userMgr *userManager
 
 var AppInstance *appframe.Application
 
-var AppCfg *config.AppConfig
 
-func InitLobbySvr(app *appframe.Application, cfgFile string) error {
+func InitLobbySvr(app *appframe.Application) error {
 
 	AppInstance = app
 
-	cfg, err := config.LoadConfig(cfgFile)
-	if err != nil {
-		return err
-	}
-	AppCfg = cfg
 
 	userMgr = initUserManager(app)
 

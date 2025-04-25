@@ -2,7 +2,6 @@ package gate
 
 import (
 	"github.com/sirupsen/logrus"
-	"github/beijian128/micius/config"
 	"github/beijian128/micius/frame/appframe"
 	appframeslb "github/beijian128/micius/frame/appframe/slb"
 	"github/beijian128/micius/frame/framework/netcluster"
@@ -13,16 +12,11 @@ import (
 var SessionMgrInstance *sessionManager
 
 var AppInstance *appframe.GateApplication
-var AppCfg *config.AppConfig
 
 // InitGateSvr 初始化 gatesvr.
-func InitGateSvr(app *appframe.GateApplication, cfgFile string) error {
+func InitGateSvr(app *appframe.GateApplication) error {
 
-	cfg, err := config.LoadConfig(cfgFile)
-	if err != nil {
-		return err
-	}
-	AppCfg = cfg
+
 	AppInstance = app
 
 	app.RegisterService(services.ServiceType_Lobby, appframeslb.WithLoadBalanceSingleton(app, services.ServiceType_Lobby))
